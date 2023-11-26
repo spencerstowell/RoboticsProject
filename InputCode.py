@@ -84,4 +84,14 @@ class RRT:
         new_point = [0, 0]
 
         # Check if the distance to the point is less than the stepsize
-        if (math.sqrt((point[0] - nearest_node[
+        if (math.sqrt((point[0] - nearest_node[0])**2 + (point[1] - nearest_node[1])**2) < self.stepsize):
+            # Set the new point
+            new_point = point
+        else:
+            # Calculate the angle to the point
+            angle = math.atan2(point[1] - nearest_node[1], point[0] - nearest_node[0])
+
+            # Set the new point
+            new_point = [nearest_node[0] + self.stepsize*math.cos(angle),
+                         nearest_node[1] + self.stepsize*math.sin(angle)]
+            
