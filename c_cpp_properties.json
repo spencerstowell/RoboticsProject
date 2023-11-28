@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "includePath": [
+                "${RoboticsProject}/**",
+                "C:/Users/spenc/Documents/Arduino/libraries**"
+            ],
+            // Other configuration options...
+        }
+    ],
+    "version": 4
+}

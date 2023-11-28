@@ -25,7 +25,20 @@ from geometry_msgs.msg import PointStamped
 # Define the class for the RRT algorithm
 class RRT:
     # Define the initialization function
-    def __init__(self, start, goal, obstacles, stepsize, max_iter):
+    # The 
+    def __init__(self, start, goal, obstacles, stepsize, max_iter, arm):
+        """
+        Accepts arguments start, goal, obstacles, stepsize, and max_iter
+        start - the starting point of the end effector in 3D cartesian coordinates
+        goal - the goal point of the end effector in 3D cartesian coordinates
+        obstacles - a list of obstacles, where each obstacle is defined in 3D cartesian coordinates with a radius
+            ex - [x, y, z, radius]
+            Future idea - include another list parameter specifying spherical or cuboid obstacles
+        stepsize - the stepsize for the RRT algorithm
+        max_iter - the maximum number of iterations for the RRT algorithm
+        arm - a robot arm object with all parameters for calculating intermediate points
+        """
+
         # Initialize the start and goal points
         self.start = start
         self.goal = goal
@@ -52,15 +65,18 @@ class RRT:
         in_obstacle = False
 
         # Iterate through the obstacles
-        for obstacle in self.obstacles:
+        for i in self.obstacles:
+            obs = self.obstacles[i]
             # Check if the point is in the obstacle
-            if (point[0] > obstacle[0][0] and point[0] < obstacle[1][0] and
-                point[1] > obstacle[0][1] and point[1] < obstacle[1][1]):
+            if (np.sqrt((point[0] - obs[i,0])^2 + (point[1] - obs[i,1])^2 + (point[2] - obs[i,2])^2) < obs[i,3]):
                 # Set the in_obstacle flag
                 in_obstacle = True
 
         # Return the in_obstacle flag
         return in_obstacle
+
+    # Define the function to check if we are interfering with ourselves
+    # def self_interference(self, point):
 
     # Define the function to find the nearest node
     def nearest_node(self, point):
