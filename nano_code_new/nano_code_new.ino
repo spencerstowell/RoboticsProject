@@ -22,9 +22,23 @@
 // first, include the library :)
 
 #include <CheapStepper.h>
+// #include <ros.h>
+// #include <std_msgs/Int32.h>
 
-// next, declare the stepper
-// and connect pins 8,9,10,11 to IN1,IN2,IN3,IN4 on ULN2003 board
+using namespace std;
+
+// Set up the node handle for publishing and subscribing
+// ros::NodeHandle nh;
+
+// Set up the subscriber callback fn for the stepper angles
+// void stepperCallback(const std_msgs::Int32& msg) {
+//   // Set the stepper angle to the message data
+//   stepper0.newMoveTo(moveClockwise, msg.data);
+//   stepper1.newMoveTo(moveClockwise, msg.data);
+//   stepper2.newMoveTo(moveClockwise, msg.data);
+// }
+
+// next, declare the stepper objects
 
 CheapStepper stepper0 (13,12,11,10); // stepper0 is connected to pins 8,9,10,11
 CheapStepper stepper1 (9,8,7,6); // stepper1 is connected to pins 8,9,10,11
@@ -62,9 +76,9 @@ void setup() {
   // now let's set up our first move...
   // let's move a half rotation from the start point
 
-  stepper0.newMoveTo(moveClockwise, 2048/4);
-  stepper1.newMoveTo(moveClockwise, 2048/4);
-  stepper2.newMoveTo(moveClockwise, 2048/4);
+  stepper0.newMoveTo(moveClockwise, -2048/4);
+  stepper1.newMoveTo(moveClockwise, -2048/4);
+  stepper2.newMoveTo(moveClockwise, -2048/4);
 
   /* this is the same as: 
    * stepper.newMoveToDegree(clockwise, 180);
@@ -112,9 +126,9 @@ void loop() {
     
     moveClockwise = !moveClockwise; // reverse direction
     
-    stepper0.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
-    stepper1.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
-    stepper2.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
+    stepper0.newMoveDegrees (moveClockwise, -45); // move 180 degrees from current position
+    stepper1.newMoveDegrees (moveClockwise, -45); // move 180 degrees from current position
+    stepper2.newMoveDegrees (moveClockwise, -45); // move 180 degrees from current position
 
     moveStartTime = millis(); // reset move start time
 
