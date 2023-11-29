@@ -76,9 +76,9 @@ void setup() {
   // now let's set up our first move...
   // let's move a half rotation from the start point
 
-  stepper0.newMoveTo(moveClockwise, -2048/4);
-  stepper1.newMoveTo(moveClockwise, -2048/4);
-  stepper2.newMoveTo(moveClockwise, -2048/4);
+  stepper0.newMoveTo(moveClockwise, 2048/4);
+  stepper1.newMoveTo(moveClockwise, 2048/4);
+  stepper2.newMoveTo(moveClockwise, 2048/4);
 
   /* this is the same as: 
    * stepper.newMoveToDegree(clockwise, 180);
@@ -126,9 +126,9 @@ void loop() {
     
     moveClockwise = !moveClockwise; // reverse direction
     
-    stepper0.newMoveDegrees (moveClockwise, -45); // move 180 degrees from current position
-    stepper1.newMoveDegrees (moveClockwise, -45); // move 180 degrees from current position
-    stepper2.newMoveDegrees (moveClockwise, -45); // move 180 degrees from current position
+    stepper0.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
+    stepper1.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
+    stepper2.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
 
     moveStartTime = millis(); // reset move start time
 
