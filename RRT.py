@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 # Define the class for the RRT algorithm
 class RRT:
     # Define the initialization function
-    # The 
     def __init__(self, start, goal, obstacles, stepsize, max_iter, arm):
         """
         Accepts arguments start, goal, obstacles, stepsize, and max_iter \n
@@ -24,6 +23,8 @@ class RRT:
         max_iter - the maximum number of iterations for the RRT algorithm (scalar value) \n
         arm - a robot arm object with all parameters for calculating intermediate points
         """
+        start = start.append(None)
+
         self.arm = arm
 
         # Initialize the start and goal points
@@ -46,6 +47,79 @@ class RRT:
         # Initialize the path_found flag
         self.path_found = False
 
+    # Define the function to run the RRT algorithm
+    def run(self):
+        '''
+        This function runs the RRT algorithm
+        '''
+        # Initialize the iteration counter
+        i = 0
+
+        # Run the algorithm until the max iterations is reached or the path is found
+        while (i < self.max_iter and self.path_found == False):
+            # Generate a new node at a random location in the tree
+            node_num = random.randint(0, len(self.tree)-1)
+            new_node, reached_goal = self.new_node(self.tree[node_num], self.stepsize)
+
+            # Check if the new node is not None
+            if (new_node != None):
+                # Add the new node to the tree
+                self.tree.append(new_node)
+
+                # Check if the new node has reached the goal
+                if (reached_goal):
+                    # Set the path_found flag
+                    self.path_found = True
+                    self.iterations = i+1
+
+            # Increment the iteration counter
+            i += 1
+
+    # Define the function to retrace the path (if it exists)
+    def retrace_path(self):
+        '''
+        This function retraces the path from the goal to the start
+        '''
+        # Check if the path has been found
+        if (self.path_found):
+            # Initialize the current node
+            current_node = self.tree[-1]
+
+            # Initialize the path object
+            self.path = []
+
+            # Iterate through the tree
+            while (current_node != self.start):
+                # Add the current node to the path
+                self.path.append(current_node)
+
+                # Set the current node to the parent node
+                current_node = current_node[-1]
+
+            # Add the start node to the path
+            self.path.append(self.start)
+
+            # Reverse the order of the nodes to go from start to finish
+            self.path.reverse()
+        else:
+            print("No path found")
+    
+    def plot(self):
+        # Plot the obstacles & all nodes in the tree on a 3D plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        for i in self.obstacles:
+            obs = self.obstacles[i]
+            ax.scatter(obs[0], obs[1], obs[2], c='r', marker='o')
+        for node in self.tree:
+            ax.scatter(node[0], node[1], node[2], c='b', marker='o')
+        for node in self.path:
+            ax.scatter(node[0], node[1], node[2], c='g', marker='o')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()
+
     # Define the function to create a new node
     def new_node(self, point, stepsize):
         '''
@@ -53,17 +127,29 @@ class RRT:
         generating a random new node. \n
         point - a 3D cartesian coordinate point (X, Y, Z) \n
         stepsize - a scalar value
+
+        The function returns the newly generated node if it meets the following criteria: \n
+        1. The new node is not in an obstacle \n
+        2. The new node is in the workspace \n
+        The probability the node is returned, provided it meets the above criteria, is
+        dependent on whether it is closer to the goal than the current node.
+
+        This also checks if the new node has reached the goal & returns a boolean flag accordingly \n
+        \tex: new_node, reached_goal = self.new_node(point, stepsize)
         '''
-        # Initialize the new node
+        # Initialize the location of the new node
         new_node = point + [np.random.uniform(-stepsize, stepsize),
                             np.random.uniform(-stepsize, stepsize),
                             np.random.uniform(-stepsize, stepsize)]
+        
+        # Append the starting node to the end of the new node
+        new_node = new_node.append(point)
 
         # Generate a random number between 0 and 1 that will be used to determine if the new node is added to the tree
         random_num = np.random.uniform(0, 1)
 
         # Check if the new node has reached the goal
-        goal = self.reached_goal(new_node)
+        reached_goal = self.reached_goal(new_node)
 
         # Compare the new node to the obstacles
         if (~self.in_obstacle(new_node) and self.in_workspace(new_node)):
@@ -71,13 +157,13 @@ class RRT:
             # Check if the new node is closer to the goal than the current node
             if (self.check_direction(point, new_node) and random_num >= 0.2):
                 # Return the new node
-                return new_node, goal
+                return new_node, reached_goal
             
             # If the new node is farther away from the goal than the current node, there is still a 20% chance
             # that it will be added to the tree
             elif (~self.check_direction(point, new_node) and random_num < 0.2):
                 # Return the new node
-                return new_node, goal
+                return new_node, reached_goal
         else:
             return None
 
@@ -86,6 +172,8 @@ class RRT:
         '''
         This function checks if a newly generated node is within the radius of any obstacles
         point - List of X, Y, Z location in space
+
+        ex: in_obstacle = self.in_obstacle(point)
         '''
         # Initialize the in_obstacle flag
         in_obstacle = False
@@ -109,6 +197,8 @@ class RRT:
         '''
         This function checks if a newly generated node is within the workspace of the robot
         point - List of X, Y, Z location in space
+
+        ex: in_workspace = self.in_workspace(point)
         '''
         # Initialize the in_workspace flag
         in_workspace = True
@@ -127,6 +217,8 @@ class RRT:
         than the starting point. \n
         node - the starting point that new_node is generated from (3D cartesian coordinate point) \n
         new_node - the new node we're comparing (3D cartesian coordinate point)
+
+        ex: is_closer = self.check_direction(node, new_node)
         '''
         # Initialize the is_closer flag
         is_closer = True
@@ -153,6 +245,8 @@ class RRT:
         '''
         This function checks if the end effector has reached the goal
         point - the current end effector position
+
+        ex: reached_goal = self.reached_goal(point)
         '''
         # Initialize the reached_goal flag
         reached_goal = False
@@ -202,3 +296,25 @@ class RRT:
     #         # Set the new point
     #         new_point = [nearest_node[0] + self.stepsize*math.cos(angle),
     #                      nearest_node[1] + self.stepsize*math.sin(angle)]
+
+# Test code for the RRT class
+if __name__ == "main":
+    # Define the start and goal points
+    start = [0, 0, 0]
+    goal = [10, 10, 10, 1]
+
+    # Define the obstacles
+    obstacles = [[5, 5, 5, 1]]
+
+    # Define the stepsize and max iterations
+    stepsize = 1
+    max_iter = 1000
+
+    # Initialize the RRT
+    rrt = RRT(start, goal, obstacles, stepsize, max_iter)
+
+    # Run the RRT algorithm
+    rrt.run()
+
+    # Plot the results
+    rrt.plot()
