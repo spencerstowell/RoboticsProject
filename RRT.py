@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # Define the class for the RRT algorithm
 class RRT:
     # Define the initialization function
-    def __init__(self, start, goal, obstacles, stepsize, max_iter, arm):
+    def __init__(self, start, goal, obstacles, stepsize, max_iter, children, arm):
         """
         Accepts arguments start, goal, obstacles, stepsize, and max_iter \n
         start - the starting point of the end effector in 3D cartesian coordinates \n
@@ -23,6 +23,7 @@ class RRT:
             \tFuture idea - include another list parameter specifying spherical vs boxy obstacles \n
         stepsize - the stepsize for the RRT algorithm (scalar value) \n
         max_iter - the maximum number of iterations for the RRT algorithm (scalar value) \n
+        children - the number of 'children' nodes to generate for each 'parent' node \n
         arm - a robot arm object with all parameters for calculating intermediate points
         """
 
@@ -39,6 +40,7 @@ class RRT:
         # Initialize the stepsize and max iterations
         self.stepsize = stepsize
         self.max_iter = max_iter
+        self.children = children
 
         # Initialize the tree
         self.tree = [start]
@@ -60,27 +62,33 @@ class RRT:
         self.goal_node = []
         self.goal_iterations = 0
 
+        # Initialize the number of 'children' nodes to generate for each 'parent'
+        n = self.children
+
         # Run the algorithm until the max iterations is reached or the path is found
-        while (i < self.max_iter) and (not self.path_found):
-            # Generate a new node at a random location in the tree
-            node_index = random.randint(0, len(self.tree)-1)
-            new_node = []
+        while (i < self.max_iter / n) and (not self.path_found):
+            
+            for _ in range(0, n):
+                # Initialize the new node
+                new_node = []
 
-            # Generate a new node at the selected location in the tree until it is not returned as None
-            while (new_node == []):
-                new_node, reached_goal = self.new_node(self.tree[node_index], self.stepsize)
+                # Generate a new node at the selected location in the tree until it is not returned as None
+                while (new_node == []):
+                    new_node, reached_goal = self.new_node(self.tree[i], self.stepsize)
 
-            # Add the new node to the tree
-            self.tree.append(new_node)
+                # Add the new node to the tree
+                self.tree.append(new_node)
 
-            # Check if the new node has reached the goal & is the first to do so
-            if (reached_goal and self.goal_node == []):
-                # Set the path_found flag
-                self.path_found = True
-                # Check at what point the goal was located
-                self.goal_iterations = i+1
-                # Save the goal node for path retracing later
-                self.goal_node = new_node
+                # Check if the new node has reached the goal & is the first to do so
+                if (reached_goal and self.goal_node == []):
+                    # Set the path_found flag
+                    self.path_found = True
+                    # Check at what point the goal was located
+                    self.goal_iterations = 3*i+1
+                    # Save the goal node for path retracing later
+                    self.goal_node = new_node
+                    # Break out of the 'for' loop
+                    break
 
             # Increment the iteration counter
             i += 1
@@ -118,48 +126,97 @@ class RRT:
 
             print("Path found in " + str(self.goal_iterations) + " iterations")
 
+            self.smoothed_path = []
+
+            print("Smoothing the path")
+            while (self.smoothed_path != self.smooth_path()):
+                pass
+
         else:
             print("No path found")
     
     # Define a function to smooth the path
     def smooth_path(self):
         '''
-        This function searches through all the nodes in the tree to identify if there are any
-        nodes on other branches that are closer to the goal than the 'next' node in line. If
-        there is, it will replace the subsequent node with the new one & 
+        This function searches through all the nodes in the tree to identify which nodes
+        on it's branch have a 'line of sight' to other nodes farther down. If
+        there is, it will replace the subsequent node with the new one to 'smooth' the path. \n
+        This function technically also returns the smoothed path, but only for the purpose of
+        checking the while loop in the retrace_path function.
         '''
-        # Initialize the current node
-        current_node = self.start
 
-        # Initialize the path object
-        self.smoothed_path = []
+        # Initialize the current node as the goal node
+        current_node = self.goal_node
 
-        # Iterate through the tree
-        while (current_node != self.goal_node):
-            # for node in self.tree:
-            #     # Check if the node is closer to the goal than the current node
-            #     if (self.check_direction(current_node, node)):
+        # Initialize the path object & include the goal node
+        self.smoothed_path = [self.goal_node]
 
-            #         # Check if the straight-line distance between the current node and the new node
-            #         # interferes with an obstacle
-            #         if ()
+        # Initialize the 'keep' node as the goal node
+        keep_node = [self.goal_node]
 
-            #         # Set the current node to the new node
-            #         current_node = node
+        # Start iterating through nodes
+        while (current_node != self.start):
+            next_node = current_node[-1]
 
-            # Add the current node to the path
-            self.smoothed_path.append(current_node)
+            # While the current node is in line of sight of the next node
+            while(self.check_line_of_sight(current_node, next_node)):
+                # Move the 'next node' to the one after it & store the one we just checked
+                keep_node = next_node
+                next_node = next_node[-1]
+                    
+                # Check if we've reached the start node
+                if (keep_node == self.start):
+                    # Break out of the while loop
+                    break
+                
+            # Add the 'keep' node to the path
+            self.smoothed_path.append(keep_node)
 
-            # Set the current node to the parent node (located in the last index of the current node)
-            current_node = current_node[-1]
-    
+            # Set the new 'current' node to the 'keep' node
+            current_node = keep_node
+
+        # Reverse the order of the nodes to go from start to finish
+        self.smoothed_path.reverse()
+
+        return self.smoothed_path
+        
+    def check_line_of_sight(self, node1, node2):
+        '''
+        This function checks if there is a clear line of sight between two nodes. \n
+        (i.e. there are no obstacles in the way) \n
+        node1 - the first node \n
+        node2 - the second node \n
+
+        This returns a boolean flag indicating whether there is a clear line of sight between the two nodes.
+        '''
+
+        # Initialize the line_of_sight flag
+        line_of_sight = True
+
+        # Get the cartesian coordinates of the two nodes
+        node1 = node1[0]
+        node2 = node2[0]
+
+        # Create a line between the two nodes with 100 points
+        x = np.linspace(node1[0], node2[0], 100)
+        y = np.linspace(node1[1], node2[1], 100)
+        z = np.linspace(node1[2], node2[2], 100)
+
+        # Iterate through the obstacles
+        for obs in self.obstacles:
+            for i in range(0, 100):
+                # Check if the line intersects with the obstacle
+                if (np.sqrt((x[i] - obs[0])**2 + (y[i] - obs[1])**2 + (z[i] - obs[2])**2) < obs[3]):
+                    # Set the line_of_sight flag
+                    line_of_sight = False
+        
+        # Return the line_of_sight flag
+        return line_of_sight
+
     def plot(self):
         # Plot the obstacles & all nodes in the tree on a 3D plot
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        path_x = []
-        path_y = []
-        path_z = []
 
         # Plot the goal as a wireframe sphere
         r = self.goal[3]
@@ -179,11 +236,61 @@ class RRT:
             z = np.cos(v) * r + obs[2]
             ax.plot_wireframe(x, y, z, color="r")
             # ax.plot_surface(x, y, z, color="r")
+
+        r = self.arm.max_reach
+        u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
+        x = np.cos(u) * np.sin(v) * r
+        y = np.sin(u) * np.sin(v) * r
+        z = np.abs(np.cos(v)) * r
+        ax.plot_wireframe(x, y, z, color="b")
         
         # Plot all nodes in the tree
         # if (not self.path_found):
-        #     for node in self.tree:
-        #         ax.scatter(node[0][0], node[0][1], node[0][2], c='b', marker='.')
+        for node in self.tree:
+            ax.scatter(node[0][0], node[0][1], node[0][2], c='b', marker='.')
+
+        # Set the plot labels
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()
+
+    def plot_path(self):
+        # Plot the obstacles & all nodes in the tree on a 3D plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        path_x = []
+        path_y = []
+        path_z = []
+        smooth_x = []
+        smooth_y = []
+        smooth_z = []
+
+        # Plot the goal as a wireframe sphere
+        r = self.goal[3]
+        u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
+        x = np.cos(u) * np.sin(v) * r + self.goal[0]
+        y = np.sin(u) * np.sin(v) * r  + self.goal[1]
+        z = np.cos(v) * r + self.goal[2]
+        ax.plot_wireframe(x, y, z, color="g")
+        
+        # Plot the obstacles as wireframe spheres
+        for i in self.obstacles:
+            obs = i
+            r = obs[3]
+            u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
+            x = np.cos(u) * np.sin(v) * r + obs[0]
+            y = np.sin(u) * np.sin(v) * r + obs[1]
+            z = np.cos(v) * r + obs[2]
+            ax.plot_wireframe(x, y, z, color="r")
+            # ax.plot_surface(x, y, z, color="r")
+
+        r = self.arm.max_reach
+        u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
+        x = np.cos(u) * np.sin(v) * r
+        y = np.sin(u) * np.sin(v) * r
+        z = np.abs(np.cos(v)) * r
+        ax.plot_wireframe(x, y, z, color="b")
 
         # Arrange the data points for the path
         for node in self.path:
@@ -193,8 +300,16 @@ class RRT:
         # plot the sequence of nodes that constitutes the path
         ax.plot(path_x, path_y, path_z, c='g', marker='o')
 
+        # Arrange the data points for the smoothed path
+        for node in self.smoothed_path:
+            smooth_x.append([node[0][0]])
+            smooth_y.append([node[0][1]])
+            smooth_z.append([node[0][2]])
+        # plot the sequence of nodes that constitutes the path
+        ax.plot(smooth_x, smooth_y, smooth_z, c='y', marker='o')
+
         # Save the path points for later use in robot arm simulation
-        self.plot_points = [path_x, path_y, path_z]
+        self.smooth_points = [path_x, path_y, path_z]
 
         # Set the plot labels
         ax.set_xlabel('X')
@@ -219,9 +334,9 @@ class RRT:
         This also checks if the new node has reached the goal & returns a boolean flag accordingly \n
         \tex: new_node, reached_goal = self.new_node(point, stepsize)
         '''
-        # Initialize the location of the new node
+
         while(1):
-                
+            # Initialize the location of the new node
             new_node = [point[0][0] + np.random.uniform(-stepsize, stepsize),
                         point[0][1] + np.random.uniform(-stepsize, stepsize),
                         point[0][2] + np.random.uniform(-stepsize, stepsize)]
@@ -232,13 +347,13 @@ class RRT:
             # Generate a random number between 0 and 1 that will be used to determine if the new node is added to the tree
             random_num = np.random.uniform(0, 1)
 
-            threshold = 0.2
+            threshold = 0.15
 
             # Check if the new node has reached the goal
             reached_goal = self.reached_goal(new_node)
 
             # Compare the new node to the obstacles
-            if not self.in_obstacle(new_node) and self.in_workspace(new_node):
+            if not self.in_obstacle(new_node) and self.in_workspace(new_node) and self.check_line_of_sight(point, new_node):
                 
                 # Check if the new node is closer to the goal than the current node
                 if (self.check_direction(point, new_node) and random_num >= threshold):
@@ -290,6 +405,9 @@ class RRT:
         # Check if the point is within the workspace
         if (np.sqrt(point[0][0]**2 + point[0][1]**2 + point[0][2]**2) > self.arm.max_reach):
             # Set the in_workspace flag
+            in_workspace = False
+
+        elif (point[0][2] < 0):
             in_workspace = False
 
         # Return the in_workspace flag
@@ -347,54 +465,10 @@ class RRT:
             reached_goal = True
         # Return the reached_goal flag
         return reached_goal
-    
-
-    # Define the function to check if we are interfering with ourselves
-    # def self_interference(self, point):
-
-    # TODO: If the functions below can be interpreted, it may be useful for path smoothing
-    # # Define the function to find the nearest node
-    # def nearest_node(self, point):
-    #     # Initialize the nearest node
-    #     nearest_node = self.tree[0]
-
-    #     # Iterate through the tree
-    #     for node in self.tree:
-    #         # Check if the distance to the point is less than the distance to the nearest node
-    #         if (math.sqrt((point[0] - node[0])**2 + (point[1] - node[1])**2) <
-    #             math.sqrt((point[0] - nearest_node[0])**2 + (point[1] - nearest_node[1])**2)):
-    #             # Set the nearest node
-    #             nearest_node = node
-
-    #     # Return the nearest node
-    #     return nearest_node
-
-    # # Define the function to find the new point
-    # def new_point(self, nearest_node, point):
-    #     # Initialize the new point
-    #     new_point = [0, 0]
-
-    #     # Check if the distance to the point is less than the stepsize
-    #     if (math.sqrt((point[0] - nearest_node[0])**2 + (point[1] - nearest_node[1])**2) < self.stepsize):
-    #         # Set the new point
-    #         new_point = point
-    #     else:
-    #         # Calculate the angle to the point
-    #         angle = math.atan2(point[1] - nearest_node[1], point[0] - nearest_node[0])
-
-    #         # Set the new point
-    #         new_point = [nearest_node[0] + self.stepsize*math.cos(angle),
-    #                      nearest_node[1] + self.stepsize*math.sin(angle)]
 
 # Test code for the RRT class
 if __name__ == "__main__":
     import kinematics as kin
-    # Define the start and goal points
-    start = [[0, 0, 0],[None]]
-    goal = [1.5, 1.5, 1, 0.4]
-
-    # Define the obstacles
-    obstacles = [[1, 0.5, 0.5, 0.75], [2, 2, 0, 0.5]]
 
     # Define the DH parameters
     Dh = [[0, 0, 0., np.pi/2.0],
@@ -402,14 +476,26 @@ if __name__ == "__main__":
             [0, 0, 1, 0]]
     
     arm = kin.SerialArm(Dh)
+    # Define the start point from a given arm configuration
+    start = [arm.fk(q=[0, 0, 0])[:3,3].tolist(), [None]]
+
+    # Define the desired goal point
+    goal = [-1.0, 0.0, 1.25, 0.15]
+
+    # Define the obstacles
+    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5]]
+
+
+    
 
     # Define the stepsize and max iterations
-    stepsize = arm.max_reach/5
-    max_iter = 10000
-    
+    stepsize = arm.max_reach/4
+    max_iter = 200000
+    children = 2
+
     # Initialize the RRT
     print("Initializing RRT")
-    rrt = RRT(start, goal, obstacles, stepsize, max_iter, arm)
+    rrt = RRT(start, goal, obstacles, stepsize, max_iter, children, arm)
 
     # Run the RRT algorithm
     print("Running RRT")
@@ -417,6 +503,7 @@ if __name__ == "__main__":
 
     # Plot the results
     print("Plotting results")
-    rrt.plot()
+    # rrt.plot()
+    rrt.plot_path()
 
-    arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
+    # arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
