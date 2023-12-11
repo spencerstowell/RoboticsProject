@@ -510,6 +510,29 @@ if __name__ == "__main__":
 
     # arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
     #%%
+    # Interpolate between striaght paths
+    print("Interpolating between straight paths")
+    smooth_points_temp = [[0,0,0],[0,0,0],[0,0,0]]
+    for i in range(len(rrt.smooth_points[0])-2):
+        # Get the cartesian coordinates of the two nodes
+        node1 = [rrt.smooth_points[0][i],rrt.smooth_points[1][i],rrt.smooth_points[2][i]]
+        node2 = [rrt.smooth_points[0][i+1],rrt.smooth_points[1][i+1],rrt.smooth_points[2][i+1]]
+
+        # Create a line between the two nodes with 100 points
+        x = np.linspace(node1[0], node2[0], 10)
+        y = np.linspace(node1[1], node2[1], 10)
+        z = np.linspace(node1[2], node2[2], 10)
+
+        # save as vector points
+        smooth_points_temp[0][i] = x
+        smooth_points_temp[1][i] = y
+        smooth_points_temp[2][i] = z
+
+    print("done")
+
+
+
+
     # Get the joint angles for the smooth path points and interpolate values in between
     print("Calculating IK Joint angles")
     q = []
@@ -521,14 +544,9 @@ if __name__ == "__main__":
     # add goal as final point
     q.append(arm.ik_position(target = goal[0:3],q0 = None, method = 'J_T',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000)[0])
     q_points = q
-    # between each q value add 10 interpolated values
-    q_interpolated = []
-    interpNumber = 20
-    for i in range(len(q)-1):
-        for j in range(interpNumber):
-            q_interpolated.append(q[i] + (q[i+1]-q[i])*(j+1)/interpNumber)
-    q_interpolated.append(q[-1])
-    q = q_interpolated
+
+
+
 
     #%% plot the joint paths
     q = np.array(q)
@@ -570,9 +588,9 @@ if __name__ == "__main__":
     for i in range(len(q_points)):
         viz.add_marker(arm.fk(q_points[i])[:3,3].tolist())
     
-    # add points inbetween
-    for i in range(len(q)):
-        viz.add_marker(arm.fk(q[i])[:3,3].tolist())
+    ## add points inbetween
+    #for i in range(len(q)):
+    #    viz.add_marker(arm.fk(q[i])[:3,3].tolist())
     
 
     # loop through and update the arm
