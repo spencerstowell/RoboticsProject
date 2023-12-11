@@ -8,6 +8,8 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import time
+from visualization import VizScene
 
 # Define the class for the RRT algorithm
 class RRT:
@@ -309,8 +311,8 @@ class RRT:
         ax.plot(smooth_x, smooth_y, smooth_z, c='y', marker='o')
 
         # Save the path points for later use in robot arm simulation
-        self.smooth_points = [path_x, path_y, path_z]
-
+        #self.smooth_points = [path_x, path_y, path_z]
+        self.smooth_points = [smooth_x, smooth_y, smooth_z]
         # Set the plot labels
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -507,3 +509,86 @@ if __name__ == "__main__":
     rrt.plot_path()
 
     # arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
+    #%%
+    # Get the joint angles for the smooth path points and interpolate values in between
+    print("Calculating IK Joint angles")
+    q = []
+    for i in range(len(rrt.smooth_points[0])):
+        target_temp = [rrt.smooth_points[0][i][0], rrt.smooth_points[1][i][0], rrt.smooth_points[2][i][0]]
+        q_temp = (arm.ik_position(target = target_temp,q0 = None, method = 'J_T',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000))
+        q.append(q_temp[0])
+        #q0 = q_temp[0]
+    # add goal as final point
+    q.append(arm.ik_position(target = goal[0:3],q0 = None, method = 'J_T',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000)[0])
+    q_points = q
+    # between each q value add 10 interpolated values
+    q_interpolated = []
+    interpNumber = 20
+    for i in range(len(q)-1):
+        for j in range(interpNumber):
+            q_interpolated.append(q[i] + (q[i+1]-q[i])*(j+1)/interpNumber)
+    q_interpolated.append(q[-1])
+    q = q_interpolated
+
+    #%% plot the joint paths
+    q = np.array(q)
+    plt.figure()
+    plt.plot(q[:,0])
+    plt.plot(q[:,1])
+    plt.plot(q[:,2])
+    plt.title('Joint Paths')
+    plt.xlabel('Time')
+    plt.ylabel('Joint Angle')
+    plt.legend(['Joint 1', 'Joint 2', 'Joint 3'])
+    plt.show()
+
+
+    #%% visualize the Robot arm in Rvis
+    # making a visualization
+    viz = VizScene()
+
+    # run time
+    time_to_run = 7
+    refresh_rate = len(q)/time_to_run
+
+    # add arm
+    viz.add_arm(arm, draw_frames=True)
+    qs = q[0]
+
+    # add obastacles 
+    viz.add_obstacle(obstacles[0][0:3], rad = obstacles[0][3])
+    viz.add_obstacle(obstacles[1][0:3], rad = obstacles[1][3])
+    # add goal
+    viz.add_marker(goal[0:3])
+    viz.add_frame(arm.fk(q[len(q)-1]), label ="goal")
+
+    # add start
+    viz.add_marker(start[0])
+    viz.add_frame(arm.fk(q[0]), label ="start")
+
+    # add major points 
+    for i in range(len(q_points)):
+        viz.add_marker(arm.fk(q_points[i])[:3,3].tolist())
+    
+    # add points inbetween
+    for i in range(len(q)):
+        viz.add_marker(arm.fk(q[i])[:3,3].tolist())
+    
+
+    # loop through and update the arm
+    for i in range(len(q)):
+        viz.update(qs=[q[i]])
+        time.sleep(1.0/refresh_rate)
+    
+    viz.hold()
+
+
+
+
+
+    viz.close_viz()
+
+
+
+
+# %%
