@@ -538,9 +538,9 @@ if __name__ == "__main__":
     q = []
     for i in range(len(rrt.smooth_points[0])):
         target_temp = [rrt.smooth_points[0][i][0], rrt.smooth_points[1][i][0], rrt.smooth_points[2][i][0]]
-        q_temp = (arm.ik_position(target = target_temp,q0 = None, method = 'J_T',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000))
+        q_temp = (arm.ik_position(target = target_temp,q0 = q0, method = 'J_T',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000))
         q.append(q_temp[0])
-        #q0 = q_temp[0]
+        q0 = q_temp[0]
     # add goal as final point
     q.append(arm.ik_position(target = goal[0:3],q0 = None, method = 'J_T',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000)[0])
     q_points = q
