@@ -22,32 +22,8 @@
 // first, include the library :)
 
 #include <CheapStepper.h>
-// #include <ros.h>
-// #include <std_msgs/Float32MultiArray.h>
 
 using namespace std;
-
-// Set up the node handle for publishing and subscribing
-// ros::NodeHandle nh;
-
-// Initialize the Subscriber
-// ros::Subscriber<std_msgs::Int32MultiArray> sub("stepper_angles", &stepperCallback);
-
-
-// Set up the subscriber callback fn for the stepper angles
-void stepperCallback(const std_msgs::Int32MultiArray& msg) {
-  // store all the angles for the movement sequence in an array
-  float stepper_angles[msg.dim[0].size][msg.dim[1].size];
-
-  // Iterate through all the angle increments
-  for (int i = 0; i < msg.dim[0].size; i++) {
-
-    // Iterate through all the stepper motors
-    for (int j = 0; j < msg.dim[1].size; j++) {
-      stepper_angles[i][j] = msg.data[i + j];
-    }
-  }
-}
 
 // next, declare the stepper objects
 
@@ -61,8 +37,9 @@ CheapStepper stepper2 (5,4,3,2); // stepper2 is connected to pins 8,9,10,11
 
 bool moveClockwise = true;
 unsigned long moveStartTime = 0; // this will save the time (millis()) when we started each new move
+//float q[300][3] = {};
 
-
+// Joint angle array
 void setup() {
 
   // let's run the stepper at 12rpm (if using 5V power) - the default is ~16 rpm
@@ -77,19 +54,23 @@ void setup() {
 //  Serial.print("stepper RPM: "); Serial.print(stepper.getRpm());
   Serial.println();
 
+  while (!Serial) {
+    delay(100); // wait for serial port to connect. Needed for native USB port only
+  }
+
   // and let's print the delay time (in microseconds) between each step
   // the delay is based on the RPM setting:
   // it's how long the stepper will wait before each step
 
 //  Serial.print("stepper delay (micros): "); Serial.print(stepper.getDelay());
-  Serial.println(); Serial.println();
+  Serial.println();
 
   // now let's set up our first move...
   // let's move a half rotation from the start point
 
-  stepper0.newMoveTo(moveClockwise, 2048/4);
-  stepper1.newMoveTo(moveClockwise, 2048/4);
-  stepper2.newMoveTo(moveClockwise, 2048/4);
+  // stepper0.newMoveTo(moveClockwise, 2048/4);
+  // stepper1.newMoveTo(moveClockwise, 2048/4);
+  // stepper2.newMoveTo(moveClockwise, 2048/4);
 
   /* this is the same as: 
    * stepper.newMoveToDegree(clockwise, 180);
@@ -99,7 +80,18 @@ void setup() {
   
 }
 
+float * processReceivedData(String data);
+float * q = {};
 void loop() {
+
+  if (Serial.available() > 0) {
+    
+    // Read the incoming data
+    String receivedData = Serial.readStringUntil('\n');
+    
+    // Process the received data (assuming it's comma-separated)
+    q = processReceivedData(receivedData);
+  }
 
   // we need to call run() during loop() 
   // in order to keep the stepper moving
@@ -137,12 +129,44 @@ void loop() {
     
     moveClockwise = !moveClockwise; // reverse direction
     
-    stepper0.newMoveToDegree(moveClockwise, 45); // move 180 degrees from current position
-    stepper1.newMoveToDegree(moveClockwise, 45); // move 180 degrees from current position
-    stepper2.newMoveToDegree(moveClockwise, 45); // move 180 degrees from current position
+    stepper0.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
+    stepper1.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
+    stepper2.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
 
     moveStartTime = millis(); // reset move start time
 
   }
 
+}
+
+float * processReceivedData(String data) {
+  // Split the received data into individual elements
+  String values[900];  // Assuming maximum of 300 rows and 3 columns
+  int i = 0;
+
+  while (data.length() > 0) {
+    int commaIndex = data.indexOf(',');
+    if (commaIndex > 0) {
+      values[i] = data.substring(0, commaIndex);
+      data = data.substring(commaIndex + 1);
+    }
+    else {
+      values[i] = data;
+      data = "";
+    }
+    i++;
+  }
+
+  // Convert string values to floats and reconstruct the original 2D array
+  float receivedArray[300][3];
+
+  for (int row = 0; row < 300; row++) {
+    for (int col = 0; col < 3; col++) {
+      receivedArray[row][col] = values[row * 3 + col].toFloat();
+    }
+  }
+
+  // Now you can use the 'receivedArray' for further processing
+  // Add your code here to use the received data as needed
+  return receivedArray;
 }

@@ -491,7 +491,7 @@ if __name__ == "__main__":
     obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5], [0, 0, 0, 0.5]]
     
     # Define the stepsize and max iterations
-    stepsize = arm.max_reach/2
+    stepsize = arm.max_reach/5
     max_iter = 200000
     children = 2
 
@@ -507,7 +507,7 @@ if __name__ == "__main__":
     print("Plotting results")
     # rrt.plot()
     rrt.plot_path()
-    rrt.plot()
+    # rrt.plot()
     # arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
     
     # Interpolate between straight paths
@@ -555,6 +555,22 @@ if __name__ == "__main__":
     # plot the joint paths
     q = np.reshape(q, (len(q),3))
     print(q)
+
+    import serial
+    import time
+
+    arduino = serial.Serial(port='COM6', baudrate=9600, timeout=.1)
+
+    def write_read(x):
+        arduino.write(x.encode())
+    
+    num = q.flatten()
+    string_data = [str(element) for element in num]
+    data_to_send = ','.join(string_data)
+    write_read(data_to_send)
+
+
+
     plt.figure()
     plt.plot(q[:,0])
     plt.plot(q[:,1])
@@ -605,5 +621,7 @@ if __name__ == "__main__":
     
     viz.hold()
     viz.close_viz()
+
+
 
 # %%
