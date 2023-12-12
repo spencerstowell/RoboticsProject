@@ -23,20 +23,31 @@
 
 #include <CheapStepper.h>
 // #include <ros.h>
-// #include <std_msgs/Int32.h>
+// #include <std_msgs/Float32MultiArray.h>
 
 using namespace std;
 
 // Set up the node handle for publishing and subscribing
 // ros::NodeHandle nh;
 
+// Initialize the Subscriber
+// ros::Subscriber<std_msgs::Int32MultiArray> sub("stepper_angles", &stepperCallback);
+
+
 // Set up the subscriber callback fn for the stepper angles
-// void stepperCallback(const std_msgs::Int32& msg) {
-//   // Set the stepper angle to the message data
-//   stepper0.newMoveTo(moveClockwise, msg.data);
-//   stepper1.newMoveTo(moveClockwise, msg.data);
-//   stepper2.newMoveTo(moveClockwise, msg.data);
-// }
+void stepperCallback(const std_msgs::Int32MultiArray& msg) {
+  // store all the angles for the movement sequence in an array
+  float stepper_angles[msg.dim[0].size][msg.dim[1].size];
+
+  // Iterate through all the angle increments
+  for (int i = 0; i < msg.dim[0].size; i++) {
+
+    // Iterate through all the stepper motors
+    for (int j = 0; j < msg.dim[1].size; j++) {
+      stepper_angles[i][j] = msg.data[i + j];
+    }
+  }
+}
 
 // next, declare the stepper objects
 
@@ -126,9 +137,9 @@ void loop() {
     
     moveClockwise = !moveClockwise; // reverse direction
     
-    stepper0.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
-    stepper1.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
-    stepper2.newMoveDegrees (moveClockwise, 45); // move 180 degrees from current position
+    stepper0.newMoveToDegree(moveClockwise, 45); // move 180 degrees from current position
+    stepper1.newMoveToDegree(moveClockwise, 45); // move 180 degrees from current position
+    stepper2.newMoveToDegree(moveClockwise, 45); // move 180 degrees from current position
 
     moveStartTime = millis(); // reset move start time
 

@@ -229,7 +229,7 @@ class RRT:
         ax.plot_wireframe(x, y, z, color="g")
         
         # Plot the obstacles as wireframe spheres
-        for i in self.obstacles:
+        for i in self.obstacles[:-1]:
             obs = i
             r = obs[3]
             u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
@@ -239,12 +239,12 @@ class RRT:
             ax.plot_wireframe(x, y, z, color="r")
             # ax.plot_surface(x, y, z, color="r")
 
-        r = self.arm.max_reach
-        u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
-        x = np.cos(u) * np.sin(v) * r
-        y = np.sin(u) * np.sin(v) * r
-        z = np.abs(np.cos(v)) * r
-        ax.plot_wireframe(x, y, z, color="b")
+        # r = self.arm.max_reach
+        # u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
+        # x = np.cos(u) * np.sin(v) * r
+        # y = np.sin(u) * np.sin(v) * r
+        # z = np.abs(np.cos(v)) * r
+        # ax.plot_wireframe(x, y, z, color="b")
         
         # Plot all nodes in the tree
         # if (not self.path_found):
@@ -488,10 +488,10 @@ if __name__ == "__main__":
     goal = [-1.0, 0.0, 1.25, 0.15]
 
     # Define the obstacles
-    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5], [0, 0, 0, 1]]
+    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5], [0, 0, 0, 0.5]]
     
     # Define the stepsize and max iterations
-    stepsize = arm.max_reach/4
+    stepsize = arm.max_reach/2
     max_iter = 200000
     children = 2
 
@@ -507,7 +507,7 @@ if __name__ == "__main__":
     print("Plotting results")
     # rrt.plot()
     rrt.plot_path()
-
+    rrt.plot()
     # arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
     
     # Interpolate between straight paths
@@ -554,7 +554,7 @@ if __name__ == "__main__":
 
     # plot the joint paths
     q = np.reshape(q, (len(q),3))
-    # print(q)
+    print(q)
     plt.figure()
     plt.plot(q[:,0])
     plt.plot(q[:,1])
