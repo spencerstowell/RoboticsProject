@@ -8,6 +8,8 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import time
+from visualization import VizScene
 
 # Define the class for the RRT algorithm
 class RRT:
@@ -309,8 +311,11 @@ class RRT:
         ax.plot(smooth_x, smooth_y, smooth_z, c='k', marker='o')
 
         # Save the path points for later use in robot arm simulation
-        self.smooth_points = [path_x, path_y, path_z]
-
+        self.smooth_points = []
+        for i in range(len(smooth_x)):
+            self.smooth_points.append([smooth_x[i], smooth_y[i], smooth_z[i]])
+        # self.smooth_points = [smooth_x, smooth_y, smooth_z]
+        # print(self.smooth_points)
         # Set the plot labels
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -474,17 +479,17 @@ if __name__ == "__main__":
     Dh = [[0, 0, 0., np.pi/2.0],
             [0, 0, 1, 0], 
             [0, 0, 1, 0]]
-    
+    q0 = [0, 0, 0]
     arm = kin.SerialArm(Dh)
     # Define the start point from a given arm configuration
-    start = [arm.fk(q=[0, 0, 0])[:3,3].tolist(), [None]]
+    start = [arm.fk(q=q0)[:3,3].tolist(), [None]]
 
     # Define the desired goal point
     goal = [-1.0, 0.0, 1.25, 0.15]
 
     # Define the obstacles
     obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5], [0, 0, 0, 1]]
-
+    
     # Define the stepsize and max iterations
     stepsize = arm.max_reach/4
     max_iter = 200000
@@ -504,3 +509,101 @@ if __name__ == "__main__":
     rrt.plot_path()
 
     # arm.ik_position(rrt.plot_points[0][-1], rrt.plot_points[1][-1], rrt.plot_points[2][-1])
+    
+    # Interpolate between straight paths
+    print("Interpolating between straight paths")
+    IK_points = []
+    
+    n = 100 # Number of points to interpolate between each node
+    # print(rrt.smooth_points)
+    for i in range(len(rrt.smooth_points) - 1):
+        # Get the cartesian coordinates of the two nodes
+        node1 = np.reshape(rrt.smooth_points[i],(3))
+        node2 = np.reshape(rrt.smooth_points[i+1], (3))
+
+        # Create a line between the two nodes with 'n' points
+        x = np.linspace(node1[0], node2[0], n)
+        y = np.linspace(node1[1], node2[1], n)
+        z = np.linspace(node1[2], node2[2], n)
+
+        # save as vector points
+        for j in range(n):
+            IK_points.append([x[j],y[j],z[j]])
+
+    # Get the joint angles for the smooth path points and interpolate values in between
+    print("Calculating IK Joint angles")
+    q = [] # empty list to store joint angles from IK
+
+    # Number of points to iterate through
+    print("Number of points to iterate through: ")
+    print(len(IK_points))
+    for i in range(len(IK_points)):
+        target = np.reshape(IK_points[i],(3))
+        q_temp = (arm.ik_position(target = target,q0 = q0, method = 'pinv',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000))
+        q.append(q_temp[0])
+        # print("Joint angles:")
+        # print(q_temp[0])
+
+        q0 = q_temp[0]
+
+    # print("IK for goal")
+    # add goal as final point
+    # q_temp = arm.ik_position(target = IK_points[-1],q0 = q0, method = 'pinv',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000)[0]
+    # q.append(q_temp)
+    q_points = q
+
+    # plot the joint paths
+    q = np.reshape(q, (len(q),3))
+    # print(q)
+    plt.figure()
+    plt.plot(q[:,0])
+    plt.plot(q[:,1])
+    plt.plot(q[:,2])
+    plt.title('Joint Paths')
+    plt.xlabel('Time')
+    plt.ylabel('Joint Angle')
+    plt.legend(['Joint 1', 'Joint 2', 'Joint 3'])
+    plt.show()
+
+
+    # visualize the Robot arm in Rvis
+    # making a visualization
+    viz = VizScene()
+
+    # run time
+    time_to_run = 10
+    refresh_rate = len(q)/time_to_run
+
+    # add arm
+    viz.add_arm(arm)
+    qs = q[0]
+
+    # add obstacles 
+    viz.add_obstacle(obstacles[0][0:3], rad = obstacles[0][3])
+    viz.add_obstacle(obstacles[1][0:3], rad = obstacles[1][3])
+    # add goal
+    # viz.add_marker(goal[0:3])
+    viz.add_frame(arm.fk(q[-1]), label ="goal")
+
+    # add start
+    # viz.add_marker(start[0])
+    viz.add_frame(arm.fk(q[0]), label ="start")
+
+    # add major points 
+    for i in range(len(IK_points)):
+        viz.add_marker(IK_points[i])
+    
+    ## add points inbetween
+    #for i in range(len(q)):
+    #    viz.add_marker(arm.fk(q[i])[:3,3].tolist())
+    
+
+    # loop through and update the arm
+    for i in range(len(q)):
+        viz.update(qs=[q[i]])
+        time.sleep(1.0/refresh_rate)
+    
+    viz.hold()
+    viz.close_viz()
+
+# %%
