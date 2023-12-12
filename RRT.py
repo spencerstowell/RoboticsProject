@@ -275,7 +275,7 @@ class RRT:
         ax.plot_wireframe(x, y, z, color="g")
         
         # Plot the obstacles as wireframe spheres
-        for i in self.obstacles:
+        for i in (self.obstacles[:-1]):
             obs = i
             r = obs[3]
             u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
@@ -285,12 +285,12 @@ class RRT:
             ax.plot_wireframe(x, y, z, color="r")
             # ax.plot_surface(x, y, z, color="r")
 
-        r = self.arm.max_reach
-        u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
-        x = np.cos(u) * np.sin(v) * r
-        y = np.sin(u) * np.sin(v) * r
-        z = np.abs(np.cos(v)) * r
-        ax.plot_wireframe(x, y, z, color="b")
+        # r = self.arm.max_reach
+        # u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
+        # x = np.cos(u) * np.sin(v) * r
+        # y = np.sin(u) * np.sin(v) * r
+        # z = np.abs(np.cos(v)) * r
+        # ax.plot_wireframe(x, y, z, color="b")
 
         # Arrange the data points for the path
         for node in self.path:
@@ -306,7 +306,7 @@ class RRT:
             smooth_y.append([node[0][1]])
             smooth_z.append([node[0][2]])
         # plot the sequence of nodes that constitutes the path
-        ax.plot(smooth_x, smooth_y, smooth_z, c='y', marker='o')
+        ax.plot(smooth_x, smooth_y, smooth_z, c='k', marker='o')
 
         # Save the path points for later use in robot arm simulation
         self.smooth_points = [path_x, path_y, path_z]
@@ -483,10 +483,7 @@ if __name__ == "__main__":
     goal = [-1.0, 0.0, 1.25, 0.15]
 
     # Define the obstacles
-    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5]]
-
-
-    
+    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5], [0, 0, 0, 1]]
 
     # Define the stepsize and max iterations
     stepsize = arm.max_reach/4
