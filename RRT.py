@@ -275,7 +275,7 @@ class RRT:
         ax.plot_wireframe(x, y, z, color="g")
         
         # Plot the obstacles as wireframe spheres
-        for i in self.obstacles:
+        for i in (self.obstacles[:-1]):
             obs = i
             r = obs[3]
             u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
@@ -483,12 +483,12 @@ if __name__ == "__main__":
     goal = [-1.0, 0.0, 1.25, 0.15]
 
     # Define the obstacles
-    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5]]
+    obstacles = [[1, 0.5, 0.75, 0.75], [-0.5, -0.5, 1.0, 0.5], [0, 0, 0, 1]]
 
     # Define the stepsize and max iterations
     stepsize = arm.max_reach/4
     max_iter = 200000
-    children = 3
+    children = 2
 
     # Initialize the RRT
     print("Initializing RRT")
