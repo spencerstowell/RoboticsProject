@@ -1,12 +1,8 @@
 # Description: This file defines a class for Rapidly Exploring Random Trees (RRTs)
 # specifically for the purpose of path planning for a robot arm.
 
-## TODO: Add a function to smooth the path
-## TODO: Add functionality to only propagate new nodes from 'end' nodes
-
 # Import needed libraries
 import numpy as np
-import random
 import matplotlib.pyplot as plt
 import time
 from visualization import VizScene
@@ -462,8 +458,6 @@ class RRT:
         # Initialize the reached_goal flag
         reached_goal = False
 
-        # print(point[0][0])
-        # print(self.goal)
         # Check if the end effector is within the goal radius
         if (np.sqrt((self.goal[0] - point[0][0])**2 + (self.goal[1] - point[0][1])**2 + (self.goal[2] - point[0][2])**2) < self.goal[3]):
             # Set the reached_goal flag
@@ -555,21 +549,6 @@ if __name__ == "__main__":
     # plot the joint paths
     q = np.reshape(q, (len(q),3))
     print(q)
-
-    import serial
-    import time
-
-    arduino = serial.Serial(port='COM6', baudrate=9600, timeout=.1)
-
-    def write_read(x):
-        arduino.write(x.encode())
-    
-    num = q.flatten()
-    string_data = [str(element) for element in num]
-    data_to_send = ','.join(string_data)
-    write_read(data_to_send)
-
-
 
     plt.figure()
     plt.plot(q[:,0])
