@@ -1,5 +1,9 @@
-# RoboticsProject
+# RRT Path Planning - BYU ME-537 Robotics Project
 This repository contains my libraries and code for a Robotics class Final Project I completed with a classmate, Ryan Hall. We implemented a unique form of Rapidly Exploring Random Trees (RRT) to plan a path for a robot arm. The unique nature of my RRT algorithm involved the method we used to generate each node in my tree. Rather than generating a random point in space and attaching to the nearest neighbor, we selected a parent node first and propagated in a random direction from there.
+
+![Image of successful completion of an RRT path](/Video+Images/PlannedPath1b.png)
+![Image of successful completion of an RRT path](/Video+Images/PointCloud.png)
+
 
 Tunable parameters in this code include:
   - Magnitude of bias towards the goal
@@ -9,7 +13,7 @@ Tunable parameters in this code include:
 
 After the RRT algorithm has identified a viable path from start-finish that successfully navigates the obstacles, a simple path-smoothing algorithm attempts to cut out intermediate nodes by searching for "line-of-sight" between different nodes on the path. The final path is then converted into a series of points, which are fed into an IK controller (Damped-Psuedo Inverse method) that models the behavior of a small robot arm tracing the path.
 
-Strenghts of this algorithm:
+Strengths of this algorithm:
   - This RRT method is able to iterate extremely quickly because each parent node is known prior to the creation of a new node. This eliminates the need to search through the existing tree when each node is created
   - The line-of-sight smoothing method is also very fast since it only looks at the history of nodes associated with the final path.
 
