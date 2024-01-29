@@ -529,8 +529,8 @@ if __name__ == "__main__":
     q = [] # empty list to store joint angles from IK
 
     # Number of points to iterate through
-    print("Number of points to iterate through: ")
-    print(len(IK_points))
+    # print("Number of points to iterate through: ")
+    # print(len(IK_points))
     for i in range(len(IK_points)):
         target = np.reshape(IK_points[i],(3))
         q_temp = (arm.ik_position(target = target,q0 = q0, method = 'pinv',force = True, tol = 1e-4,K = np.eye(3),kd =0.001, max_iter = 1000))
@@ -548,7 +548,7 @@ if __name__ == "__main__":
 
     # plot the joint paths
     q = np.reshape(q, (len(q),3))
-    print(q)
+    # print(q)
 
     plt.figure()
     plt.plot(q[:,0])
